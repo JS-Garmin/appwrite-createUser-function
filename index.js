@@ -5,7 +5,11 @@
         const users = new sdk.Users(client);
         const teams = new sdk.Teams(client);
     
-        if (!process.env.APPWRITE_FUNCTION_ENDPOINT || !process.env.APPWRITE_FUNCTION_API_KEY || !process.env.APPWRITE_FUNCTION_PROJECT_ID) {
+        if (
+            !process.env.APPWRITE_FUNCTION_ENDPOINT ||
+            !process.env.APPWRITE_FUNCTION_API_KEY ||
+            !process.env.APPWRITE_FUNCTION_PROJECT_ID
+        ) {
             context.error("Environment variables are not set.");
             return context.res.json({ success: false, message: 'Environment variables not set.' });
         }
@@ -16,7 +20,7 @@
             .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
     
         try {
-            const payload = JSON.parse(context.req.body);
+            const payload = context.req.body;
             const { name, email, password, role } = payload;
     
             if (!name || !email || !password || !role) {
@@ -41,12 +45,12 @@
             const teamId = teamList.teams[0].$id;
     
             // 3. Add the user to the team directly using their USER ID
+            //    THE FINAL FIX IS HERE: The parameters were wrong.
             await teams.createMembership(
                 teamId,
                 ['member'],
-                "http://localhost/dummy-url", // URL is required but not used for direct-add
-                undefined, // email is undefined
-                newUser.$id // Use the user's ID to add them directly
+                "http://localhost/dummy-url", // URL is required but not used
+                newUser.$id // Correctly passing the user ID
             );
     
             return context.res.json({ success: true, message: 'User created successfully.' });
