@@ -20,7 +20,7 @@
             .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
     
         try {
-            const payload = context.req.body;
+            const payload = JSON.parse(context.req.body);
             const { name, email, password, role } = payload;
     
             if (!name || !email || !password || !role) {
@@ -36,7 +36,7 @@
                 name
             );
     
-            // 2. Find the team ID for the given role
+            // 2. Find the team ID
             const teamList = await teams.list([sdk.Query.equal('name', [role])]);
             
             if (teamList.teams.length === 0) {
@@ -44,13 +44,14 @@
             }
             const teamId = teamList.teams[0].$id;
     
-            // 3. Add the user to the team directly using their USER ID
-            //    THE FINAL FIX IS HERE: The parameters were wrong.
+            // 3. Add user to the team
+            // THE FINAL, CORRECTED CALL IS HERE:
             await teams.createMembership(
                 teamId,
                 ['member'],
-                "http://localhost/dummy-url", // URL is required but not used
-                newUser.$id // Correctly passing the user ID
+                'http://localhost/dummy', // url (required but not used)
+                undefined,                // email (not used when adding by ID)
+                newUser.$id               // userId
             );
     
             return context.res.json({ success: true, message: 'User created successfully.' });
