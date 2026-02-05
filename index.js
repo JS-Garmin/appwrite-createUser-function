@@ -1,9 +1,9 @@
-    const sdk = require('node-appwrite');
+    var sdk = require('node-appwrite');
     
     module.exports = async (context) => {
-        const client = new sdk.Client();
-        const users = new sdk.Users(client);
-        const teams = new sdk.Teams(client);
+        var client = new sdk.Client();
+        var users = new sdk.Users(client);
+        var teams = new sdk.Teams(client);
     
         try {
             client
@@ -11,43 +11,45 @@
                 .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || '')
                 .setKey(process.env.APPWRITE_FUNCTION_API_KEY || '');
     
-            const payload = JSON.parse(context.req.body);
-            const { name, email, password, role } = payload;
+            var payload = JSON.parse(context.req.body);
+            var name = payload.name;
+            var email = payload.email;
+            var password = payload.password;
+            var role = payload.role;
     
             if (!name || !email || !password || !role) {
-                return context.res.json({ success: false, message: 'Missing required fields.' });
+                throw new Error('Missing required fields.');
             }
     
-            // 1. Create the user
-            const newUser = await users.create(
-                sdk.ID.unique(),
-                email,
-                null,
-                password,
-                name
-            );
+            // Step 1: Create the user
+            var newUser = await users.create(sdk.ID.unique(), email, null, password, name);
     
-            // 2. Find the team ID
-            const teamList = await teams.list([sdk.Query.equal('name', [role])]);
-            
+            // Step 2: Find the team ID
+            var teamList = await teams.list([sdk.Query.equal('name', [role])]);
             if (teamList.teams.length === 0) {
-                return context.res.json({ success: false, message: `Team '${role}' not found.` });
+                throw new Error(`Team '${role}' not found.`);
             }
-            const teamId = teamList.teams[0].$id;
+            var teamId = teamList.teams[0].$id;
     
-            // 3. Add user to the team
-            await teams.createMembership(
+            // Step 3 (NEW APPROACH): Create an invitation for the user's email.
+            var invitation = await teams.createMembership(
                 teamId,
+                email,
                 ['member'],
-                'http://localhost/dummy-url', // url
-                undefined, // email
-                newUser.$id // userId
+                'http://localhost/accept' // Dummy URL
             );
     
-            return context.res.json({ success: true, message: 'User created successfully.' });
+            // Step 4 (ENTIRELY NEW COMMAND): As an admin, force-accept the invitation.
+            await teams.updateMembershipStatus(
+                teamId,
+                invitation.$id,
+                newUser.$id,
+                invitation.secret
+            );
+            
+            return context.res.json({ success: true, message: 'User created and added to team successfully.' });
     
         } catch (error) {
-            // THIS IS THE NEW PART: Return the detailed error to the app.
             context.error(error.toString());
             return context.res.json({ success: false, message: `Server Error: ${error.toString()}` });
         }
