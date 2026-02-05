@@ -10,24 +10,28 @@
                 .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || '')
                 .setKey(process.env.APPWRITE_FUNCTION_API_KEY || '');
 
-            // Step 1 (COMPLETELY NEW LOGIC): List all users from the project.
+            // NEW LOGIC: List all users from the project
             const userList = await users.list();
 
-            // Step 2 (COMPLETELY NEW LOGIC): Format the users for the app.
+            // NEW LOGIC: Map all users and their labels to the format the app expects
             const result = userList.users.map(user => {
+                // Find the role from the labels array, default to 'User'
+                // This will now correctly read the label from your 'superuser'
                 const role = Array.isArray(user.labels) && user.labels.length > 0
                     ? user.labels[0]
-                    : 'User'; // Default role if no label is found
+                    : 'User';
                 return {
                     name: user.name,
                     role: role
                 };
             });
             
+            // Return the formatted list
             return context.res.json(result);
 
         } catch (error) {
             context.error(error.toString());
+            // Return an empty list in case of an error to prevent the app from crashing
             return context.res.json([]);
         }
     };
