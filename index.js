@@ -14,8 +14,8 @@ module.exports = async (context) => {
 
         const result = userList.users.map(user => ({
             id: user.$id,
-            name: user.name,
-            email: user.email,
+            name: user.name ?? '',
+            email: user.email ?? '',
             role: Array.isArray(user.labels) && user.labels.length > 0
                 ? user.labels[0]
                 : 'User'
