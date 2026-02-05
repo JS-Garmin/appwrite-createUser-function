@@ -27,7 +27,6 @@
                 return context.res.json({ success: false, message: 'Missing required fields.' });
             }
     
-            // 1. Create the user
             const newUser = await users.create(
                 sdk.ID.unique(),
                 email,
@@ -36,7 +35,6 @@
                 name
             );
     
-            // 2. Find the team ID
             const teamList = await teams.list([sdk.Query.equal('name', [role])]);
             
             if (teamList.teams.length === 0) {
@@ -44,14 +42,13 @@
             }
             const teamId = teamList.teams[0].$id;
     
-            // 3. Add user to the team
-            // THE FINAL, CORRECTED CALL IS HERE:
+            // THE FINAL, CORRECTED CALL: The userId parameter was in the wrong position.
             await teams.createMembership(
                 teamId,
                 ['member'],
-                'http://localhost/dummy', // url (required but not used)
-                undefined,                // email (not used when adding by ID)
-                newUser.$id               // userId
+                'http://localhost/dummy-url', // url (required but not used)
+                undefined,                  // email (not used for direct add)
+                newUser.$id                 // userId
             );
     
             return context.res.json({ success: true, message: 'User created successfully.' });
