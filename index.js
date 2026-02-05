@@ -10,8 +10,8 @@ module.exports = async (context) => {
             .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
             .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
 
-        // ✅ KORREKT
-        const userList = await users.list([]);
+        // ✅ RICHTIG
+        const userList = await users.list();
 
         const result = userList.users.map(user => ({
             id: user.$id,
@@ -29,7 +29,6 @@ module.exports = async (context) => {
         );
 
     } catch (error) {
-        // ✅ FEHLER AN APP ZURÜCKGEBEN (wichtig!)
         context.error(error);
         return context.res.send(
             JSON.stringify({ error: error.message }),
