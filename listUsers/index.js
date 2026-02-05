@@ -1,47 +1,32 @@
-    const fetch = require('node-fetch');
+const sdk = require('node-appwrite');
 
-    module.exports = async (context) => {
-        try {
-            const endpoint = process.env.APPWRITE_FUNCTION_ENDPOINT;
-            const projectId = process.env.APPWRITE_FUNCTION_PROJECT_ID;
-            const apiKey = process.env.APPWRITE_FUNCTION_API_KEY;
+module.exports = async (context) => {
+    const client = new sdk.Client();
+    const users = new sdk.Users(client);
 
-            if (!endpoint || !projectId || !apiKey) {
-                throw new Error("Missing environment variables.");
-            }
+    try {
+        client
+            .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT || '')
+            .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || '')
+            .setKey(process.env.APPWRITE_FUNCTION_API_KEY || '');
 
-            // NEUE LOGIK: Direkter, sauberer API-Aufruf ohne SDK
-            const response = await fetch(`${endpoint}/users`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Appwrite-Project': projectId,
-                    'X-Appwrite-Key': apiKey,
-                },
-            });
+        const userList = await users.list();
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to fetch users: ${response.statusText} - ${errorText}`);
-            }
+        const result = userList.users.map(user => {
+            const role = Array.isArray(user.labels) && user.labels.length > 0
+                ? user.labels[0]
+                : 'User';
+            return {
+                id: user.$id, // WICHTIG: Die ID wird jetzt mitgeliefert
+                name: user.name,
+                role: role
+            };
+        });
+        
+        return context.res.json({ success: true, data: result });
 
-            const userList = await response.json();
-
-            const result = userList.users.map(user => {
-                const role = Array.isArray(user.labels) && user.labels.length > 0
-                    ? user.labels[0]
-                    : 'User';
-                return {
-                    name: user.name,
-                    role: role,
-                };
-            });
-
-            return context.res.json({ success: true, data: result });
-
-        } catch (error) {
-            context.error(error.toString());
-            return context.res.json({ success: false, message: `Server Error: ${error.toString()}` });
-        }
-    };
-    
+    } catch (error) {
+        context.error(error.toString());
+        return context.res.json({ success: false, message: `Server Error: ${error.toString()}` });
+    }
+};
