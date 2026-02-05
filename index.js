@@ -1,39 +1,33 @@
-const sdk = require('node-appwrite');
+    const sdk = require('node-appwrite');
 
-module.exports = async (context) => {
-    const client = new sdk.Client();
-    const users = new sdk.Users(client);
+    module.exports = async (context) => {
+        const client = new sdk.Client();
+        const users = new sdk.Users(client);
 
-    try {
-        client
-            .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT)
-            .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-            .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
+        try {
+            client
+                .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT || '')
+                .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || '')
+                .setKey(process.env.APPWRITE_FUNCTION_API_KEY || '');
 
-        // ✅ RICHTIG
-        const userList = await users.list();
+            const payload = JSON.parse(context.req.body);
+            const { name, email, password, role } = payload;
 
-        const result = userList.users.map(user => ({
-            id: user.$id,
-            name: user.name ?? '',
-            email: user.email ?? '',
-            role: Array.isArray(user.labels) && user.labels.length > 0
-                ? user.labels[0]
-                : 'User'
-        }));
+            if (!name || !email || !password || !role) {
+                throw new Error('Missing required fields.');
+            }
 
-        return context.res.send(
-            JSON.stringify(result),
-            200,
-            { 'Content-Type': 'application/json' }
-        );
+            // Step 1: Create the user
+            const newUser = await users.create(sdk.ID.unique(), email, null, password, name);
 
-    } catch (error) {
-        context.error(error);
-        return context.res.send(
-            JSON.stringify({ error: error.message }),
-            500,
-            { 'Content-Type': 'application/json' }
-        );
-    }
-};
+            // Step 2 (COMPLETELY NEW LOGIC): Update the user's labels with the role.
+            await users.updateLabels(newUser.$id, [role]);
+            
+            return context.res.json({ success: true, message: 'User created and labeled successfully.' });
+
+        } catch (error) {
+            context.error(error.toString());
+            return context.res.json({ success: false, message: `Server Error: ${error.toString()}` });
+        }
+    };
+    
