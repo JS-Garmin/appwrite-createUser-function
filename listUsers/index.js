@@ -1,48 +1,33 @@
     const sdk = require('node-appwrite');
-    
+
     module.exports = async (context) => {
         const client = new sdk.Client();
-        const teams = new sdk.Teams(client);
-    
-        if (!process.env.APPWRITE_FUNCTION_ENDPOINT || !process.env.APPWRITE_FUNCTION_API_KEY || !process.env.APPWRITE_FUNCTION_PROJECT_ID) {
-            context.error('Environment variables not set.');
-            return context.res.json([]);
-        }
-    
-        client
-            .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT)
-            .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-            .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
-    
+        const users = new sdk.Users(client);
+
         try {
-            // The fix is here: pass an empty array to the list method.
-            const teamList = await teams.list([]); 
-            const userRoleMap = new Map();
-            const rolePrecedence = { 'Superadmin': 3, 'Admin': 2, 'User': 1 };
-    
-            for (const team of teamList.teams) {
-                const teamMembers = await teams.listMemberships(team.$id);
-                for (const member of teamMembers.memberships) {
-                    const userId = member.userId;
-                    const userName = member.userName;
-                    const currentRole = team.name;
-    
-                    if (userRoleMap.has(userId)) {
-                        const existingRole = userRoleMap.get(userId).role;
-                        if ((rolePrecedence[currentRole] || 0) > (rolePrecedence[existingRole] || 0)) {
-                            userRoleMap.set(userId, { name: userName, role: currentRole });
-                        }
-                    } else {
-                        userRoleMap.set(userId, { name: userName, role: currentRole });
-                    }
-                }
-            }
+            client
+                .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT || '')
+                .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || '')
+                .setKey(process.env.APPWRITE_FUNCTION_API_KEY || '');
+
+            // Step 1 (COMPLETELY NEW LOGIC): List all users from the project.
+            const userList = await users.list();
+
+            // Step 2 (COMPLETELY NEW LOGIC): Format the users for the app.
+            const result = userList.users.map(user => {
+                const role = Array.isArray(user.labels) && user.labels.length > 0
+                    ? user.labels[0]
+                    : 'User'; // Default role if no label is found
+                return {
+                    name: user.name,
+                    role: role
+                };
+            });
             
-            const result = Array.from(userRoleMap.values());
             return context.res.json(result);
-    
+
         } catch (error) {
-            context.error(error);
+            context.error(error.toString());
             return context.res.json([]);
         }
     };
