@@ -1,28 +1,24 @@
     const sdk = require('node-appwrite');
-
+    
     module.exports = async function (req, res) {
       const client = new sdk.Client();
       const users = new sdk.Users(client);
-
-      if (
-        !req.variables['APPWRITE_FUNCTION_ENDPOINT'] ||
-        !req.variables['APPWRITE_FUNCTION_API_KEY'] ||
-        !req.variables['APPWRITE_FUNCTION_PROJECT_ID']
-      ) {
+    
+      if (!req.variables['APPWRITE_FUNCTION_API_KEY']) {
         throw new Error("Function environment variables are not set.");
       }
-
+    
       client
-        .setEndpoint(req.variables['APPWRITE_FUNCTION_ENDPOINT'])
+        .setEndpoint(req.variables['APPWRITE_FUNCTION_ENDPOINT'] || 'https://cloud.appwrite.io/v1')
         .setProject(req.variables['APPWRITE_FUNCTION_PROJECT_ID'])
         .setKey(req.variables['APPWRITE_FUNCTION_API_KEY']);
-
+    
       try {
         const userList = await users.list();
-        // Gibt die Benutzerliste als JSON-Objekt zurück
-        res.json(userList);
+        // Gibt explizit ein JSON-Objekt zurück, das die Benutzerliste enthält
+        res.json(userList); 
       } catch (error) {
-        console.error(error);
+        console.error(error.message);
         res.json({ error: error.message }, 500);
       }
     };
