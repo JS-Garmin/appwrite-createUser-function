@@ -26,7 +26,8 @@
           .setKey(apiKey);
     
         log("Client initialized. Attempting to call users.list()...");
-        const userList = await users.list();
+        const userList = await users.list();,
+          //Test
     
         log(`SDK call successful. RAW RESPONSE: ${JSON.stringify(userList)}`);
     
