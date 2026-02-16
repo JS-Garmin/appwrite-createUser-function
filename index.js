@@ -1,40 +1,29 @@
-const sdk = require('node-appwrite');
+    const sdk = require('node-appwrite');
 
-module.exports = async (context) => {
-    const client = new sdk.Client();
-    const users = new sdk.Users(client);
+    module.exports = async function (req, res) {
+      const client = new sdk.Client();
+      const users = new sdk.Users(client);
 
-    try {
-        client.setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT || '')
-            .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || '')
-            .setKey(process.env.APPWRITE_FUNCTION_API_KEY || '');
+      if (
+        !req.variables['APPWRITE_FUNCTION_ENDPOINT'] ||
+        !req.variables['APPWRITE_FUNCTION_API_KEY'] ||
+        !req.variables['APPWRITE_FUNCTION_PROJECT_ID']
+      ) {
+        throw new Error("Function environment variables are not set.");
+      }
 
-        const payload = JSON.parse(context.req.body);
+      client
+        .setEndpoint(req.variables['APPWRITE_FUNCTION_ENDPOINT'])
+        .setProject(req.variables['APPWRITE_FUNCTION_PROJECT_ID'])
+        .setKey(req.variables['APPWRITE_FUNCTION_API_KEY']);
 
-        // NEUE LOGIK: Prüfen, ob ein Nutzer gelöscht werden soll
-        if (payload.deleteUserId) {
-            // Sicherheitscheck: Superadmin kann sich nicht selbst löschen
-            if (payload.deleteUserId === context.req.headers['x-appwrite-user-id']) {
-                throw new Error("Superadmin cannot delete themselves.");
-            }
-            await users.delete(payload.deleteUserId);
-            return context.res.json({ success: true, message: 'User deleted.' });
-        }
-
-        // Bisherige Logik zum Erstellen eines Nutzers
-        const { name, email, password, role } = payload;
-
-        if (!name || !email || !password || !role) {
-            throw new Error('Missing fields for user creation.');
-        }
-
-        const newUser = await users.create(sdk.ID.unique(), email, null, password, name);
-        await users.updateLabels(newUser.$id, [role]);
-        
-        return context.res.json({ success: true, message: 'User created.' });
-
-    } catch (error) {
-        context.error(error.toString());
-        return context.res.json({ success: false, message: `Server Error: ${error.toString()}` });
-    }
-};
+      try {
+        const userList = await users.list();
+        // Gibt die Benutzerliste als JSON-Objekt zurück
+        res.json(userList);
+      } catch (error) {
+        console.error(error);
+        res.json({ error: error.message }, 500);
+      }
+    };
+    
