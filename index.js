@@ -15,7 +15,7 @@
     
       try {
         const userList = await users.list();
-        // Gibt explizit ein JSON-Objekt zurück, das die Benutzerliste enthält
+        // Gibt die Benutzerliste als JSON-Objekt zurück
         res.json(userList); 
       } catch (error) {
         console.error(error.message);
