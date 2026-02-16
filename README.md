@@ -1,1 +1,1 @@
-# appwrite-createUser-function2
+# appwrite-createUser-function
