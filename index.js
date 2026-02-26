@@ -7,52 +7,40 @@ module.exports = async ({ req, res, log, error }) => {
     .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
 
   const users = new sdk.Users(client);
-  
   let payload = {};
   if (req.body) {
     try {
       payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    } catch (e) {
-      log("Kein JSON-Payload gefunden oder Fehler beim Parsen.");
-    }
+    } catch (e) { log("Kein JSON im Body"); }
   }
 
   try {
-    // 1. LÖSCHEN
+    // 1. LABELS AKTUALISIEREN (Asphalt Zugriff)
+    if (payload.updateUserId && payload.labels) {
+      log(`Update Labels für ${payload.updateUserId}: ${payload.labels}`);
+      await users.updateLabels(payload.updateUserId, payload.labels);
+      return res.json({ success: true });
+    }
+
+    // 2. LÖSCHEN
     if (payload.deleteUserId) {
-      log(`Lösche Nutzer: ${payload.deleteUserId}`);
       await users.delete(payload.deleteUserId);
-      return res.json({ success: true, message: "User deleted" });
+      return res.json({ success: true });
     }
 
-    // 2. ANLEGEN
+    // 3. ANLEGEN
     if (payload.email && payload.password) {
-      log(`Erstelle Nutzer: ${payload.email}`);
-      const newUser = await users.create(
-        sdk.ID.unique(),
-        payload.email,
-        undefined, // phone
-        payload.password,
-        payload.name
-      );
-      
-      // Rolle/Label zuweisen (kleingeschrieben)
-      if (payload.role) {
-        const roleLabel = payload.role.toLowerCase();
-        log(`Weise Label zu: ${roleLabel}`);
-        await users.updateLabels(newUser.$id, [roleLabel]);
-      }
-      
-      return res.json({ success: true, message: "User created", userId: newUser.$id });
+      const newUser = await users.create(sdk.ID.unique(), payload.email, undefined, payload.password, payload.name);
+      if (payload.role) await users.updateLabels(newUser.$id, [payload.role.toLowerCase()]);
+      return res.json({ success: true, userId: newUser.$id });
     }
 
-    // 3. AUFLISTEN (wenn kein Payload zum Löschen/Anlegen da ist)
-    log("Rufe Benutzerliste ab...");
+    // 4. AUFLISTEN
     const response = await users.list();
     return res.json(response);
 
   } catch (err) {
-    error("Fehler in der Funktion: " + err.message);
+    error(err.message);
     return res.json({ success: false, error: err.message }, 500);
   }
 };
