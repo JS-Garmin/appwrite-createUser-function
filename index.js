@@ -1,8 +1,6 @@
 const sdk = require('node-appwrite');
 
 module.exports = async ({ req, res, log, error }) => {
-  log("--- START LIST USERS ---");
-
   const client = new sdk.Client()
     .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT || 'https://fra.cloud.appwrite.io/v1')
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
@@ -11,7 +9,7 @@ module.exports = async ({ req, res, log, error }) => {
   const users = new sdk.Users(client);
 
   try {
-    // users.list ohne Parameter aufrufen, um GET ohne Body zu erzwingen
+    // Nur users.list() aufrufen, keine Parameter übergeben!
     const response = await users.list();
     return res.json(response);
   } catch (err) {
