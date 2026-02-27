@@ -1,7 +1,7 @@
 {
-  "name": "list-users",
+  "name": "kirchner-user-management",
   "version": "1.0.0",
-  "description": "Appwrite Function",
+  "description": "Handles user listing, creation, deletion, and label updates for KirchnerApp",
   "main": "index.js",
   "dependencies": {
     "node-appwrite": "^13.0.0"
